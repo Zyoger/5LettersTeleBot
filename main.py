@@ -3,7 +3,7 @@
 # This program is dedicated to the public domain under the CC0 license.
 
 import logging
-
+import random
 from telegram import __version__ as TG_VER
 
 try:
@@ -29,7 +29,17 @@ logger = logging.getLogger(__name__)
 # Define a few command handlers. These usually take the two arguments update and
 # context.
 
-word = "1"
+def get_array_words():
+    """"""
+    with open("data\\words.txt", "r", encoding="utf-8") as file:
+        words_array = [row.strip('\n') for row in file]
+    return words_array
+
+
+word = "буква"
+counter_worlds = 0
+array_words = []
+array_words = get_array_words()
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -55,8 +65,10 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 async def get_word(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """"""
     word = context.args[0]
-    await update.effective_message.reply_text(f"Слово из {len(word)} букв.")
-    await update.message.reply_text(f"Составь маску. (+) - буква на месте, (=) - буква правильная, но не на месте, (-) - такой буквы нет.")
+    await update.message.reply_text(f"Слово {word} из {len(word)} букв.")
+    await update.message.reply_text(f"Составь маску. (+) - буква на месте, "
+                                    f"(=) - буква правильная, но не на месте, "
+                                    f"(-) - такой буквы нет.")
     await update.message.reply_text(f"Введи маску, /m <*****>")
     return word
 
@@ -64,15 +76,21 @@ async def get_word(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def get_mask(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """"""
     mask = context.args[0]
-    await update.effective_message.reply_text(f"Маска: '{mask}'.")
-    return mask
+    global word
+    global array_words
+    await update.effective_message.reply_text("Варианты слов:")
+    print("mask", mask)
+    print("word", word)
+    array_words = filter_by_length(array_words, mask)
+    array_words = filter_wrong_letter(array_words, mask, word)
+    array_words = filter_right_letter(array_words, mask, word)
+    array_words = filter_include_letter(array_words, mask, word)
+    print(len(array_words))
+    print(array_words)
+    for i in range(0, 10):
+        await update.effective_message.reply_text(array_words[random.randint(0, len(array_words))])
 
 
-def get_array_words():
-    """"""
-    with open("data\\words.txt", "r", encoding="utf-8") as file:
-        words_array = [row.strip('\n') for row in file]
-    return words_array
 
 
 def filter_by_length(array, words_mask):
@@ -84,16 +102,58 @@ def filter_by_length(array, words_mask):
     return new_array
 
 
+def filter_wrong_letter(array, words_mask, current_word):
+    """Фильтрует по буквам которых нет в слове"""
+    filter_array = []
+    for word in array:
+        flag = True
+        for i in range(len(word)):
+            if words_mask[i] == "-" and current_word[i] in word:
+                flag = False
+        if flag:
+            filter_array.append(word)
+    return filter_array
+
+
+def filter_right_letter(array, words_mask, current_word):
+    """Фильтрует по правильной букве"""
+    filter_array = []
+    for word in array:
+        flag = True
+        for i in range(len(word)):
+            if words_mask[i] == "+":
+                if word[i] != current_word[i]:
+                    flag = False
+        if flag:
+            filter_array.append(word)
+    return filter_array
+
+
+def filter_include_letter(array, words_mask, current_word):
+    """Фильтрует по букве которая есть в слове"""
+    filter_array = []
+    for word in array:
+        flag_1 = True
+        for i in range(len(words_mask)):
+            if words_mask[i] == "=":
+                if current_word[i] not in word:
+                    flag_1 = False
+                elif current_word[i] == word[i]:
+                    flag_1 = False
+        if flag_1:
+            filter_array.append(word)
+    return filter_array
+
+
+
 def main() -> None:
     application = Application.builder().token("5669784334:AAHe_DyzWPnwBU_-7PFCL6qSQw9ujCPd7Gg").build()
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
 
-
     application.add_handler(CommandHandler("w", get_word))
     application.add_handler(CommandHandler("m", get_mask))
-    print(word)
 
     application.run_polling()
 
