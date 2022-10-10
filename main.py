@@ -29,11 +29,12 @@ logger = logging.getLogger(__name__)
 # Define a few command handlers. These usually take the two arguments update and
 # context.
 
+word = "1"
+
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /start is issued."""
     chat_id = update.effective_message.chat_id
-    word_counter = len(get_array_words())
     user = update.effective_user
     await update.message.reply_html(
         rf"Hi {user.mention_html()}!"
@@ -42,7 +43,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         f"Это бот для игры 5 букв у Тинькова."
     )
     await update.message.reply_text(
-        f"Сейчас в базе {word_counter} слов. Введи первое слово. /w <слово>"
+        f"Сейчас в базе {len(get_array_words())} слов. Введи первое слово. /w <слово>"
     )
 
 
@@ -54,15 +55,17 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 async def get_word(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """"""
     word = context.args[0]
-    await update.effective_message.reply_text(f"Текущее слово: '{word}'.")
+    await update.effective_message.reply_text(f"Слово из {len(word)} букв.")
     await update.message.reply_text(f"Составь маску. (+) - буква на месте, (=) - буква правильная, но не на месте, (-) - такой буквы нет.")
     await update.message.reply_text(f"Введи маску, /m <*****>")
+    return word
 
 
 async def get_mask(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """"""
     mask = context.args[0]
     await update.effective_message.reply_text(f"Маска: '{mask}'.")
+    return mask
 
 
 def get_array_words():
@@ -72,21 +75,26 @@ def get_array_words():
     return words_array
 
 
+def filter_by_length(array, words_mask):
+    """Фильтрует массив по количеству букв в исходном слове"""
+    new_array = []
+    for i in range(0, len(array)):
+        if len(array[i]) == len(words_mask):
+            new_array.append(array[i])
+    return new_array
+
+
 def main() -> None:
-    """Start the bot."""
-    # Create the Application and pass it your bot's token.
     application = Application.builder().token("5669784334:AAHe_DyzWPnwBU_-7PFCL6qSQw9ujCPd7Gg").build()
 
-    # on different commands - answer in Telegram
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
 
-    # on non command i.e message - echo the message on Telegram
+
     application.add_handler(CommandHandler("w", get_word))
     application.add_handler(CommandHandler("m", get_mask))
+    print(word)
 
-
-    # Run the bot until the user presses Ctrl-C
     application.run_polling()
 
 
