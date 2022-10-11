@@ -29,7 +29,7 @@ def get_array_words():
     return words_array
 
 
-word = ""
+word = "буква"
 counter_worlds = 0
 array_words = get_array_words()
 
