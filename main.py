@@ -49,7 +49,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /start is issued."""
     global array_words
+    global word
     array_words = get_array_words()
+    word = "буква"
     await update.message.reply_text(f"Выполнен сброс.")
 
 
