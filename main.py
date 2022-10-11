@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 def get_array_words():
     """"""
-    with open("data\\words.txt", "r", encoding="utf-8") as file:
+    with open("words.txt", "r", encoding="utf-8") as file:
         words_array = [row.strip('\n') for row in file]
     return words_array
 
@@ -39,13 +39,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_message.chat_id
     user = update.effective_user
     await update.message.reply_html(
-        rf"Hi {user.mention_html()}!"
+        rf"Привет {user.mention_html()}!"
     )
     await update.message.reply_text(
-        f"Это бот для игры 5 букв у Тинькова."
-    )
-    await update.message.reply_text(
-        f"Сейчас в базе {len(get_array_words())} слов. Введи первое слово. /w <слово>"
+        f"Сейчас в базе {len(get_array_words())} слов. Введи первое слово. Пример: /w <буква>"
     )
 
 
@@ -53,8 +50,7 @@ async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /start is issued."""
     global array_words
     array_words = get_array_words()
-    print("Сейчас слов", len(array_words))
-    await update.message.reply_text(f"Сброс.")
+    await update.message.reply_text(f"Выполнен сброс.")
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -67,10 +63,9 @@ async def get_word(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     global word
     word = context.args[0]
     await update.message.reply_text(f"Слово {word} из {len(word)} букв.")
-    await update.message.reply_text(f"Составь маску. (+) - буква на месте, "
-                                    f"(=) - буква правильная, но не на месте, "
-                                    f"(-) - такой буквы нет.")
-    await update.message.reply_text(f"Введи маску, /m <*****>")
+    await update.message.reply_text(f"Введи маску. (y) - буква на месте, "
+                                    f"(m) - буква правильная, но не на месте, "
+                                    f"(n) - такой буквы нет. Шаблон маски, /m <*****>")
 
 
 async def get_mask(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -78,15 +73,11 @@ async def get_mask(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     mask = context.args[0]
     global word
     global array_words
-    print("mask", mask)
-    print("word", word)
     array_words = filter_by_length(array_words, mask)
     array_words = filter_wrong_letter(array_words, mask, word)
     array_words = filter_right_letter(array_words, mask, word)
     array_words = filter_include_letter(array_words, mask, word)
     await update.message.reply_text(f"Всего подходящих слов: {len(array_words)} Варианты слов:")
-    print("Сейчас слов", len(array_words))
-    print(array_words)
     if len(array_words) >= 5:
         for i in range(0, 5):
             await update.message.reply_text(array_words[i])
@@ -111,7 +102,7 @@ def filter_wrong_letter(array, words_mask, current_word):
     for word in array:
         flag = True
         for i in range(len(word)):
-            if words_mask[i] == ("~" or "-") and current_word[i] in word:
+            if words_mask[i] == "n" and current_word[i] in word:
                 flag = False
         if flag:
             filter_array.append(word)
@@ -124,7 +115,7 @@ def filter_right_letter(array, words_mask, current_word):
     for word in array:
         flag = True
         for i in range(len(word)):
-            if words_mask[i] == "+":
+            if words_mask[i] == "y":
                 if word[i] != current_word[i]:
                     flag = False
         if flag:
@@ -136,20 +127,20 @@ def filter_include_letter(array, words_mask, current_word):
     """Фильтрует по букве которая есть в слове"""
     filter_array = []
     for word in array:
-        flag_1 = True
+        flag = True
         for i in range(len(words_mask)):
-            if words_mask[i] == "=":
+            if words_mask[i] == "m":
                 if current_word[i] not in word:
-                    flag_1 = False
+                    flag = False
                 elif current_word[i] == word[i]:
-                    flag_1 = False
-        if flag_1:
+                    flag = False
+        if flag:
             filter_array.append(word)
     return filter_array
 
 
 def main() -> None:
-    application = Application.builder().token("5669784334:AAHe_DyzWPnwBU_-7PFCL6qSQw9ujCPd7Gg").build()
+    application = Application.builder().token("5698474788:AAHVW2OF2hSss7cB8XhE7UjG41sbmjfXBMc").build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("w", get_word))
