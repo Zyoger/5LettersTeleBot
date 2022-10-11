@@ -1,7 +1,3 @@
-#!/usr/bin/env python
-# pylint: disable=unused-argument, wrong-import-position
-# This program is dedicated to the public domain under the CC0 license.
-
 import logging
 import random
 from telegram import __version__ as TG_VER
@@ -17,17 +13,14 @@ if __version_info__ < (20, 0, 0, "alpha", 1):
         f"{TG_VER} version of this example, "
         f"visit https://docs.python-telegram-bot.org/en/v{TG_VER}/examples.html"
     )
-from telegram import ForceReply, Update
+from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
-# Enable logging
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-# Define a few command handlers. These usually take the two arguments update and
-# context.
 
 def get_array_words():
     """"""
@@ -36,9 +29,8 @@ def get_array_words():
     return words_array
 
 
-word = "буква"
+word = ""
 counter_worlds = 0
-array_words = []
 array_words = get_array_words()
 
 
@@ -57,6 +49,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 
+async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Send a message when the command /start is issued."""
+    global array_words
+    array_words = get_array_words()
+    print("Сейчас слов", len(array_words))
+    await update.message.reply_text(f"Сброс.")
+
+
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /help is issued."""
     await update.message.reply_text("-----Добавить помощь-----")
@@ -64,13 +64,13 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 async def get_word(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """"""
+    global word
     word = context.args[0]
     await update.message.reply_text(f"Слово {word} из {len(word)} букв.")
     await update.message.reply_text(f"Составь маску. (+) - буква на месте, "
                                     f"(=) - буква правильная, но не на месте, "
                                     f"(-) - такой буквы нет.")
     await update.message.reply_text(f"Введи маску, /m <*****>")
-    return word
 
 
 async def get_mask(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -78,18 +78,21 @@ async def get_mask(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     mask = context.args[0]
     global word
     global array_words
-    await update.effective_message.reply_text("Варианты слов:")
     print("mask", mask)
     print("word", word)
     array_words = filter_by_length(array_words, mask)
     array_words = filter_wrong_letter(array_words, mask, word)
     array_words = filter_right_letter(array_words, mask, word)
     array_words = filter_include_letter(array_words, mask, word)
-    print(len(array_words))
+    await update.message.reply_text(f"Всего подходящих слов: {len(array_words)} Варианты слов:")
+    print("Сейчас слов", len(array_words))
     print(array_words)
-    for i in range(0, 10):
-        await update.effective_message.reply_text(array_words[random.randint(0, len(array_words))])
-
+    if len(array_words) >= 5:
+        for i in range(0, 5):
+            await update.message.reply_text(array_words[i])
+    else:
+        for i in range(0, len(array_words)):
+            await update.message.reply_text(array_words[i])
 
 
 
@@ -108,7 +111,7 @@ def filter_wrong_letter(array, words_mask, current_word):
     for word in array:
         flag = True
         for i in range(len(word)):
-            if words_mask[i] == "-" and current_word[i] in word:
+            if words_mask[i] == ("~" or "-") and current_word[i] in word:
                 flag = False
         if flag:
             filter_array.append(word)
@@ -145,16 +148,13 @@ def filter_include_letter(array, words_mask, current_word):
     return filter_array
 
 
-
 def main() -> None:
     application = Application.builder().token("5669784334:AAHe_DyzWPnwBU_-7PFCL6qSQw9ujCPd7Gg").build()
-
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
-
     application.add_handler(CommandHandler("w", get_word))
     application.add_handler(CommandHandler("m", get_mask))
-
+    application.add_handler(CommandHandler("r", reset))
     application.run_polling()
 
 
