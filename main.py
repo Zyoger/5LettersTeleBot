@@ -1,5 +1,4 @@
 import logging
-import random
 from telegram import __version__ as TG_VER
 
 try:
@@ -30,7 +29,6 @@ def get_array_words():
 
 
 word = "буква"
-counter_worlds = 0
 array_words = get_array_words()
 
 
@@ -52,12 +50,17 @@ async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     global word
     array_words = get_array_words()
     word = "буква"
-    await update.message.reply_text(f"Выполнен сброс.")
+    await update.message.reply_text("Выполнен сброс. Слово по умолчанию 'буква'.")
+    await update.message.reply_text("Введи маску. (y) - буква на месте, "
+                                    "(m) - буква правильная, но не на месте, "
+                                    "(n) - такой буквы нет. Шаблон маски, /m <*****>")
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /help is issued."""
-    await update.message.reply_text("-----Добавить помощь-----")
+    await update.message.reply_text("/r - сброс бота для поиска нового слова.")
+    await update.message.reply_text("/m - маска для фильтрации слов.")
+    await update.message.reply_text("/w - ввести слово.")
 
 
 async def get_word(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -65,9 +68,9 @@ async def get_word(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     global word
     word = context.args[0]
     await update.message.reply_text(f"Слово {word} из {len(word)} букв.")
-    await update.message.reply_text(f"Введи маску. (y) - буква на месте, "
-                                    f"(m) - буква правильная, но не на месте, "
-                                    f"(n) - такой буквы нет. Шаблон маски, /m <*****>")
+    await update.message.reply_text("Введи маску. (y) - буква на месте, "
+                                    "(m) - буква правильная, но не на месте, "
+                                    "(n) - такой буквы нет. Шаблон маски, /m <*****>")
 
 
 async def get_mask(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -76,17 +79,15 @@ async def get_mask(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     global word
     global array_words
     array_words = filter_by_length(array_words, mask)
-    array_words = filter_wrong_letter(array_words, mask, word)
-    array_words = filter_right_letter(array_words, mask, word)
-    array_words = filter_include_letter(array_words, mask, word)
-    await update.message.reply_text(f"Всего подходящих слов: {len(array_words)} Варианты слов:")
+    array_words = filter_by_mask(array_words, mask, word)
+    await update.message.reply_text(f"Всего подходящих слов: {len(array_words)}")
+    await update.message.reply_text("Варианты слов:")
     if len(array_words) >= 5:
         for i in range(0, 5):
             await update.message.reply_text(array_words[i])
     else:
         for i in range(0, len(array_words)):
             await update.message.reply_text(array_words[i])
-
 
 
 def filter_by_length(array, words_mask):
@@ -98,46 +99,24 @@ def filter_by_length(array, words_mask):
     return new_array
 
 
-def filter_wrong_letter(array, words_mask, current_word):
-    """Фильтрует по буквам которых нет в слове"""
+def filter_by_mask(array, words_mask, current_word):
+    """Фильтрует по маске"""
     filter_array = []
-    for word in array:
+    for arg in array:
         flag = True
-        for i in range(len(word)):
-            if words_mask[i] == "n" and current_word[i] in word:
+        for i in range(len(arg)):
+            if words_mask[i] == "n" and current_word[i] in arg:
                 flag = False
-        if flag:
-            filter_array.append(word)
-    return filter_array
-
-
-def filter_right_letter(array, words_mask, current_word):
-    """Фильтрует по правильной букве"""
-    filter_array = []
-    for word in array:
-        flag = True
-        for i in range(len(word)):
-            if words_mask[i] == "y":
-                if word[i] != current_word[i]:
+            elif words_mask[i] == "y":
+                if arg[i] != current_word[i]:
+                    flag = False
+            elif words_mask[i] == "m":
+                if current_word[i] not in arg:
+                    flag = False
+                elif current_word[i] == arg[i]:
                     flag = False
         if flag:
-            filter_array.append(word)
-    return filter_array
-
-
-def filter_include_letter(array, words_mask, current_word):
-    """Фильтрует по букве которая есть в слове"""
-    filter_array = []
-    for word in array:
-        flag = True
-        for i in range(len(words_mask)):
-            if words_mask[i] == "m":
-                if current_word[i] not in word:
-                    flag = False
-                elif current_word[i] == word[i]:
-                    flag = False
-        if flag:
-            filter_array.append(word)
+            filter_array.append(arg)
     return filter_array
 
 
