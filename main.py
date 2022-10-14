@@ -68,6 +68,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await update.message.reply_text("/r - сброс бота для поиска нового слова.")
     await update.message.reply_text("/m - маска для фильтрации слов.")
     await update.message.reply_text("/w - ввести слово.")
+    await update.message.reply_text("/сw - показать текущее слово.")
 
 
 async def current_word(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
