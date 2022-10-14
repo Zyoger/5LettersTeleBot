@@ -28,13 +28,20 @@ def get_array_words():
     return words_array
 
 
-word = "буква"
-array_words = get_array_words()
+dictionary_words = {}
+dictionary = {}
+chat_id = 0
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /start is issued."""
+    global dictionary_words
+    global dictionary
+    global chat_id
     chat_id = update.effective_message.chat_id
+    dictionary = {"words_array": get_array_words(), "current_word": "буква", "current_mask": "mmmmm"}
+    dictionary_words.setdefault(chat_id, dictionary)
+    print(dictionary_words)
     user = update.effective_user
     await update.message.reply_html(
         rf"Привет {user.mention_html()}!"
@@ -46,10 +53,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /start is issued."""
-    global array_words
-    global word
-    array_words = get_array_words()
-    word = "буква"
+    global dictionary_words
+    dictionary_words[chat_id]['words_array'] = get_array_words()
+    dictionary_words[chat_id]['current_word'] = "буква"
+    dictionary_words[chat_id]['current_mask'] = "mmmmm"
     await update.message.reply_text("Выполнен сброс. Слово по умолчанию 'буква'.")
     await update.message.reply_text("Введи маску. (y) - буква на месте, "
                                     "(m) - буква правильная, но не на месте, "
@@ -63,11 +70,16 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await update.message.reply_text("/w - ввести слово.")
 
 
+async def current_word(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Send a message when the command /help is issued."""
+    await update.message.reply_text(f"Текущее слово: {(dictionary_words.get(chat_id)).get('current_word')}")
+
+
 async def get_word(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """"""
-    global word
-    word = context.args[0]
-    await update.message.reply_text(f"Слово {word} из {len(word)} букв.")
+    global dictionary_words
+    dictionary_words[chat_id]['current_word'] = context.args[0]
+    await update.message.reply_text(f"Слово {dictionary_words[chat_id]['current_word']} из {len(dictionary_words[chat_id]['current_word'])} букв.")
     await update.message.reply_text("Введи маску. (y) - буква на месте, "
                                     "(m) - буква правильная, но не на месте, "
                                     "(n) - такой буквы нет. Шаблон маски, /m <*****>")
@@ -75,19 +87,19 @@ async def get_word(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def get_mask(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """"""
-    mask = context.args[0]
-    global word
-    global array_words
-    array_words = filter_by_length(array_words, mask)
-    array_words = filter_by_mask(array_words, mask, word)
-    await update.message.reply_text(f"Всего подходящих слов: {len(array_words)}")
+    global dictionary_words
+    dictionary_words[chat_id]['current_mask'] = context.args[0]
+    array = filter_by_length(dictionary_words[chat_id]['words_array'], dictionary_words[chat_id]['current_mask'])
+    array = filter_by_mask(array, dictionary_words[chat_id]['current_mask'], dictionary_words[chat_id]['current_word'])
+    await update.message.reply_text(f"Всего подходящих слов: {len(array)}")
     await update.message.reply_text("Варианты слов:")
-    if len(array_words) >= 5:
+    dictionary_words[chat_id]['words_array'] = array
+    if len(array) >= 5:
         for i in range(0, 5):
-            await update.message.reply_text(array_words[i])
+            await update.message.reply_text(array[i])
     else:
-        for i in range(0, len(array_words)):
-            await update.message.reply_text(array_words[i])
+        for i in range(0, len(array)):
+            await update.message.reply_text(array[i])
 
 
 def filter_by_length(array, words_mask):
@@ -127,6 +139,8 @@ def main() -> None:
     application.add_handler(CommandHandler("w", get_word))
     application.add_handler(CommandHandler("m", get_mask))
     application.add_handler(CommandHandler("r", reset))
+    application.add_handler(CommandHandler("cw", current_word))
+
     application.run_polling()
 
 
