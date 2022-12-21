@@ -134,7 +134,7 @@ def filter_by_mask(array, words_mask, current_word):
 
 
 def main() -> None:
-    application = Application.builder().token("5698474788:AAHVW2OF2hSss7cB8XhE7UjG41sbmjfXBMc").build()
+    application = Application.builder().token("5523880479:AAF1G_ASC4xa2xp4ajSXnPz_zTdUBh0FVAw").build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("w", get_word))
